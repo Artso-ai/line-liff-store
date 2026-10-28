@@ -72,17 +72,20 @@
   </div>
 
   <script>
-    // 1. 30 個櫃位設定對照表
+    // 1. 各分店代號對照表（在這裡設定代號對應的 Bot ID 與分店名稱）
     const storeConfig = {
-      '2012152585-LsQsJONN': {
-        name: 'store1 (亞梭傢俬-特力和樂HOLA新店店)',
+      'store1': {
+        name: '亞梭傢俬-特力和樂HOLA新店店',
         botBasicId: '@blr1162r'
-       '2012259273-pJDuO6WL': {
-        name: 'store1 (亞梭傢俬-中和特力屋)',
-        botBasicId: '@405ksdzh'  
+      },
+      'store2': {
+        name: '亞梭傢俬-中和特力屋',
+        botBasicId: '@405ksdzh'
       }
+      // 後續只要繼續加 store3, store4... 即可！
     };
 
+    // 預設的 LIFF ID (隨便一個已開通的 LIFF ID 即可，用來初始化 LINE 登入環境)
     const defaultLiffId = '2012152585-LsQsJONN';
 
     function getQueryParam(variable) {
@@ -104,9 +107,12 @@
 
     const itemName = getQueryParam('name') || '精選商品';
     const notionUrl = getQueryParam('url') || '';
+    const storeKey = getQueryParam('store') || 'store1'; // 預設為 store1
+
     document.getElementById('itemTitle').innerText = itemName;
 
-    let currentStore = { name: '預設櫃位', botBasicId: '' };
+    // 取得對應的分店資訊
+    const currentStore = storeConfig[storeKey] || storeConfig['store1'];
 
     window.addEventListener('load', async function() {
       try {
@@ -117,10 +123,8 @@
           return;
         }
 
-        const currentLiffId = liff.id || defaultLiffId;
-        currentStore = storeConfig[currentLiffId] || { name: '預設櫃位', botBasicId: '' };
+        // 顯示當前分店名稱
         document.getElementById('storeNameDisplay').innerText = `櫃位：${currentStore.name}`;
-
         renderButton();
       } catch (err) {
         console.error('LIFF 初始化失敗:', err);
@@ -134,18 +138,17 @@
       `;
     }
 
-    // 🚀 確保直接鎖定該櫃位聊天室的協定
+    // 導向對應櫃位聊天室
     function goToChat() {
       if (!currentStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
         return;
       }
 
-      // 組合訊息，確保完全沒有換行符號干擾
       const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
       const encodeText = encodeURIComponent(messageText);
 
-      // 使用 oaMessage 確保直接對準該櫃位聊天室，不讓用戶選錯人
+      // 導向該分店專屬的官方帳號聊天室
       const targetUrl = `https://line.me/R/oaMessage/${currentStore.botBasicId}/?text=${encodeText}`;
 
       window.location.href = targetUrl;
