@@ -72,7 +72,7 @@
   </div>
 
   <script>
-    // 1. 各分店代號對照表（在這裡設定代號對應的 Bot ID 與分店名稱）
+    // 1. 各分店設定對照表（需填入對應的 LIFF ID 與 Bot ID）
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
@@ -86,9 +86,6 @@
       }
       // 後續只要繼續加 store3, store4... 即可！
     };
-
-    // 預設的 LIFF ID (用來初始化 LINE 登入環境)
-    const defaultLiffId = '2012152585-LsQsJONN';
 
     function getQueryParam(variable) {
       try {
@@ -113,24 +110,38 @@
 
     document.getElementById('itemTitle').innerText = itemName;
 
-    // 取得對應的分店資訊
-    const currentStore = storeConfig[storeKey] || storeConfig['store1'];
+    let activeStore = null;
 
     window.addEventListener('load', async function() {
       try {
-        await liff.init({ liffId: defaultLiffId });
+        // 使用全域 LIFF ID 自動初始化，避免固定寫死造成初始化失敗
+        await liff.init({ useGlobalLIFFId: true });
 
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
 
+        // 自動抓取當前掃描進來的 LIFF ID
+        const currentLiffId = liff.id;
+        
+        // 優先透過 LIFF ID 反查分店，若對照不到則改用網址上的 store 參數
+        let matchedStore = null;
+        for (let key in storeConfig) {
+          if (storeConfig[key].liffId === currentLiffId) {
+            matchedStore = storeConfig[key];
+            break;
+          }
+        }
+
+        activeStore = matchedStore || storeConfig[storeKey] || storeConfig['store1'];
+
         // 顯示當前分店名稱
-        document.getElementById('storeNameDisplay').innerText = `櫃位：${currentStore.name}`;
+        document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
         renderButton();
       } catch (err) {
         console.error('LIFF 初始化失敗:', err);
-        document.getElementById('guideText').innerText = '載入發生錯誤';
+        document.getElementById('guideText').innerText = '初始化發生錯誤: ' + JSON.stringify(err);
       }
     });
 
@@ -140,9 +151,9 @@
       `;
     }
 
-    // 導向對應櫃位聊天室（已優化編碼，確保商品與 Notion 連結完整傳送）
+    // 導向對應櫃位聊天室
     function goToChat() {
-      if (!currentStore.botBasicId) {
+      if (!activeStore || !activeStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
         return;
       }
@@ -152,7 +163,7 @@
       const encodeText = encodeURIComponent(messageText);
 
       // 導向該分店專屬的官方帳號聊天室
-      const targetUrl = `https://line.me/R/oaMessage/${currentStore.botBasicId}/?text=${encodeText}`;
+      const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
 
       window.location.href = targetUrl;
     }
