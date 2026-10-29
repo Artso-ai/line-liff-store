@@ -57,6 +57,20 @@
     .btn-secondary {
       background-color: #00B900;
     }
+    /* 備用/解除封鎖引導按鈕樣式 */
+    .btn-unblock {
+      background-color: #f39c12;
+      box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+    }
+    .notice {
+      font-size: 13px;
+      color: #e67e22;
+      margin-top: 15px;
+      line-height: 1.4;
+      background: #fdf3e7;
+      padding: 10px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
@@ -72,25 +86,26 @@
   </div>
 
   <script>
-    // 1. 各分店設定對照表（未來要擴充 30 個櫃位，直接在這裡往下新增 store3, store4...）
+    // 1. 各分店設定對照表（已加入 botHomeUrl 用於未加好友或解除封鎖時的引導）
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
-        botBasicId: '@blr1162r'
+        botBasicId: '@blr1162r',
+        botHomeUrl: 'https://line.me/R/ti/p/@blr1162r'
       },
       'store2': {
         name: '亞梭傢俬-台北大巨蛋',
-        botBasicId: '@776lwjtv'
+        botBasicId: '@776lwjtv',
+        botHomeUrl: 'https://line.me/R/ti/p/@776lwjtv'
       }
+      // 後續擴充 store3, store4... 依此類推
     };
 
-    // 使用共用且穩定的 LIFF ID 進行初始化，確保雙系統絕不發生 INIT_FAILED 或 INVALID_CONFIG
+    // 使用共用且穩定的 LIFF ID 進行初始化
     const stableLiffId = '2012152585-LsQsJONN';
 
-    // 強制解析網址參數的精準函式（完全避開 Android 舊快取干擾）
     function getQueryParam(variable) {
       try {
-        // 直接抓取整串 window.location.href 來解析，確保拿到當下最新的參數
         var searchIndex = window.location.href.indexOf('?');
         if (searchIndex === -1) return null;
         var query = window.location.href.substring(searchIndex + 1);
@@ -109,60 +124,8 @@
 
     const itemName = getQueryParam('name') || '精選商品';
     const notionUrl = getQueryParam('url') || '';
-    
-    // 即時讀取當前網址帶的 store 參數，若無則預設 store1
     const storeKey = getQueryParam('store') || 'store1';
 
     document.getElementById('itemTitle').innerText = itemName;
 
-    // 即時配對對應的分店
-    let activeStore = storeConfig[storeKey] || storeConfig['store1'];
-
-    window.addEventListener('load', async function() {
-      try {
-        await liff.init({ liffId: stableLiffId });
-
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        // 動態更新畫面上的分店名稱
-        document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
-        renderButton();
-      } catch (err) {
-        console.error('LIFF 初始化失敗:', err);
-        document.getElementById('guideText').innerText = '初始化發生錯誤: ' + JSON.stringify(err);
-      }
-    });
-
-    function renderButton() {
-      document.getElementById('actionArea').innerHTML = `
-        <button class="btn" onclick="goToChat()">發送【${itemName}】至專屬聊天室</button>
-      `;
-    }
-
-    // 跨平台（iOS & Android）安全的聊天室導向與傳送函式
-    function goToChat() {
-      if (!activeStore || !activeStore.botBasicId) {
-        alert('尚未設定該櫃位的 Bot ID');
-        return;
-      }
-
-      const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
-      const encodeText = encodeURIComponent(messageText);
-      const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
-
-      // 透過 LINE SDK 的 openWindow 確保雙系統都能強制喚醒對應官方帳號聊天室
-      if (liff.isInClient()) {
-        liff.openWindow({
-          url: targetUrl,
-          external: false
-        });
-      } else {
-        window.location.href = targetUrl;
-      }
-    }
-  </script>
-</body>
-</html>
+    let activeStore = storeConfig[storeKey] ||
