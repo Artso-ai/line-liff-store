@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
-  <!-- 加上時間參數強制破除快取 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=999"></script>
+  <!-- 強制載入最新 LINE SDK 並破除快取 -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?t=20261029"></script>
   <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
     var vConsole = new window.VConsole();
@@ -77,11 +77,11 @@
 
   <div class="card">
     <h3 id="storeNameDisplay">櫃位商品引導</h3>
-    <h2 id="itemTitle">載入中...</h2>
+    <h2 id="itemTitle">解析中...</h2>
     <p id="guideText">點擊下方按鈕，直接將商品資訊傳送至專屬聊天室！</p>
     
     <div id="actionArea">
-      <button class="btn btn-secondary">讀取中...</button>
+      <button class="btn btn-secondary">畫面載入中...</button>
     </div>
   </div>
 
@@ -128,7 +128,7 @@
 
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
-    // 立即渲染畫面，保證不卡住
+    // 立即將資料渲染到畫面上，絕對不經過非同步等待
     document.getElementById('itemTitle').innerText = itemName;
     document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
     
@@ -140,7 +140,7 @@
       </div>
     `;
 
-    // 背景初始化 LIFF
+    // 在背景安全初始化 LIFF
     window.addEventListener('load', async function() {
       try {
         if (typeof liff !== 'undefined') {
@@ -159,4 +159,28 @@
         alert('尚未設定該櫃位的 Bot ID');
         return;
       }
-      const messageText = `【${itemName}】商品詳細頁面： ${
+      const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
+      const encodeText = encodeURIComponent(messageText);
+      const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
+
+      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+        liff.openWindow({ url: targetUrl, external: false });
+      } else {
+        window.location.href = targetUrl;
+      }
+    }
+
+    function goToAddFriend() {
+      if (!activeStore || !activeStore.botHomeUrl) {
+        alert('尚未設定該櫃位的官方帳號連結');
+        return;
+      }
+      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+        liff.openWindow({ url: activeStore.botHomeUrl, external: false });
+      } else {
+        window.location.href = activeStore.botHomeUrl;
+      }
+    }
+  </script>
+</body>
+</html>
