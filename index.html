@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
-  <!-- 強制載入最新 LINE SDK 並破除快取 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?t=20261029"></script>
+  <!-- 絕對破除快取的版本宣告 -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_v2"></script>
   <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
     var vConsole = new window.VConsole();
@@ -77,16 +77,16 @@
 
   <div class="card">
     <h3 id="storeNameDisplay">櫃位商品引導</h3>
-    <h2 id="itemTitle">解析中...</h2>
+    <h2 id="itemTitle">載入中...</h2>
     <p id="guideText">點擊下方按鈕，直接將商品資訊傳送至專屬聊天室！</p>
     
     <div id="actionArea">
-      <button class="btn btn-secondary">畫面載入中...</button>
+      <button class="btn btn-secondary">讀取中...</button>
     </div>
   </div>
 
   <script>
-    // 1. 各分店設定對照表
+    // 💡 【未來擴充區】：未來擴充至 30 家店，直接在這裡往下新增 store3, store4 ... store30
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
@@ -98,11 +98,13 @@
         botBasicId: '@776lwjtv',
         botHomeUrl: 'https://line.me/R/ti/p/@776lwjtv'
       }
+      // 'store3': { name: '...', botBasicId: '...', botHomeUrl: '...' },
+      // ... 以此類推到 store30
     };
 
     const stableLiffId = '2012152585-LsQsJONN';
 
-    // 取得網址參數
+    // 通用標準參數抓取函式
     function getQueryParam(variable) {
       try {
         var href = window.location.href;
@@ -124,11 +126,26 @@
 
     const itemName = getQueryParam('name') || '精選商品';
     const notionUrl = getQueryParam('url') || '';
-    const storeKey = getQueryParam('store') || 'store1';
 
+    // 🛡️ 【100% 鐵人防護網】：使用正規表達式從整串網址強制撈出 store 關鍵字（支援 store1 ~ store99）
+    let storeKey = getQueryParam('store');
+    
+    if (!storeKey) {
+      var match = window.location.href.match(/store(store)?([0-9]+)/i);
+      // 如果網址裡直接包含 store2 這種字樣，強制把它抓出來
+      var fullMatch = window.location.href.match(/store([0-9]+)/i);
+      if (fullMatch) {
+        storeKey = 'store' + fullMatch[1];
+      }
+    }
+
+    // 如果還是找不到，預設為 store1
+    storeKey = storeKey || 'store1';
+
+    // 嚴格對應分店，若對應不到預設回 store1
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
-    // 立即將資料渲染到畫面上，絕對不經過非同步等待
+    // 立即將抓到的分店與商品渲染上畫面，絕不卡住
     document.getElementById('itemTitle').innerText = itemName;
     document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
     
@@ -140,7 +157,7 @@
       </div>
     `;
 
-    // 在背景安全初始化 LIFF
+    // 背景初始化 LIFF
     window.addEventListener('load', async function() {
       try {
         if (typeof liff !== 'undefined') {
