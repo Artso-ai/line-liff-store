@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
   <!-- 絕對破除快取的版本宣告 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_ultimate"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_pure"></script>
   <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
     var vConsole = new window.VConsole();
@@ -77,11 +77,11 @@
 
   <div class="card">
     <h3 id="storeNameDisplay">櫃位商品引導</h3>
-    <h2 id="itemTitle">載入中...</h2>
+    <h2 id="itemTitle">解析中...</h2>
     <p id="guideText">點擊下方按鈕，直接將商品資訊傳送至專屬聊天室！</p>
     
     <div id="actionArea">
-      <button class="btn btn-secondary">讀取中...</button>
+      <button class="btn btn-secondary">畫面準備中...</button>
     </div>
   </div>
 
@@ -124,12 +124,12 @@
       return null;
     }
 
-    // 1. 優先從當下網址抓取參數
+    // 1. 抓取當前網址參數
     let itemName = getQueryParam('name');
     let notionUrl = getQueryParam('url');
     let storeKey = getQueryParam('store');
 
-    // 2. 如果網址參數被快取吃掉，透過正規表達式從整串網址強制撈出 store 關鍵字
+    // 如果網址沒有 store，透過正規表達式從整串網址強制撈出 store 關鍵字
     if (!storeKey) {
       var fullMatch = window.location.href.match(/store([0-9]+)/i);
       if (fullMatch) {
@@ -137,41 +137,32 @@
       }
     }
 
-    // 🛡️ 【終極雙重防護網：處理密碼鎖重載與 Android 快取】
-    // 取得當前瀏覽行程中暫存的分店代號
-    let sessionStore = sessionStorage.getItem('target_storeKey');
-
+    // 🎯 【核心原則：當下網址參數優先，Session 僅作密碼鎖重載時的救援備用】
     if (storeKey) {
-      // 如果網址帶有新的分店，且跟暫存的不一樣（代表掃了新店或切換了櫃位）
-      if (sessionStore && storeKey !== sessionStore) {
-        sessionStorage.setItem('target_storeKey', storeKey);
-        if (itemName) sessionStorage.setItem('target_itemName', itemName);
-        if (notionUrl) sessionStorage.setItem('target_notionUrl', notionUrl);
-        
-        // 強制重新整理，徹底打碎 Android 快取，確保全新載入
-        if (!window.location.href.includes('_ref=1')) {
-          window.location.replace(window.location.href + (window.location.href.includes('?') ? '&' : '?') + '_ref=1');
-        }
-      } else {
-        // 第一次進來，直接寫入暫存
-        sessionStorage.setItem('target_storeKey', storeKey);
-        if (itemName) sessionStorage.setItem('target_itemName', itemName);
-        if (notionUrl) sessionStorage.setItem('target_notionUrl', notionUrl);
-      }
+      // 情況 A：當下網址有明確分店（代表掃了新的 QR 碼），立刻強制更新記憶
+      sessionStorage.setItem('target_storeKey', storeKey);
     } else {
-      // 遭遇 LINE 密碼解鎖 / Face ID / 指紋登入導致網址參數遺失時，從 sessionStorage 完美救回！
+      // 情況 B：網址參數因 LINE 密碼鎖 / Face ID 重新整理而消失，從 Session 安全救援
       storeKey = sessionStorage.getItem('target_storeKey');
     }
 
-    // 補齊商品名稱與 Notion 連結的 Session 救回機制
-    itemName = itemName || sessionStorage.getItem('target_itemName') || '精選商品';
-    notionUrl = notionUrl || sessionStorage.getItem('target_notionUrl') || '';
+    if (itemName) {
+      sessionStorage.setItem('target_itemName', itemName);
+    } else {
+      itemName = sessionStorage.getItem('target_itemName') || '精選商品';
+    }
 
-    // 最終保險預設
+    if (notionUrl) {
+      sessionStorage.setItem('target_notionUrl', notionUrl);
+    } else {
+      notionUrl = sessionStorage.getItem('target_notionUrl') || '';
+    }
+
+    // 最終預設保險
     storeKey = storeKey || 'store1';
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
-    // 立即將抓到的分店與商品渲染上畫面，絕不卡住
+    // 💡 絕對安全、直接的同步渲染，絕不卡住
     document.getElementById('itemTitle').innerText = itemName;
     document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
     
@@ -183,7 +174,7 @@
       </div>
     `;
 
-    // 背景初始化 LIFF
+    // 背景安全初始化 LIFF
     window.addEventListener('load', async function() {
       try {
         if (typeof liff !== 'undefined') {
@@ -209,4 +200,21 @@
       if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
         liff.openWindow({ url: targetUrl, external: false });
       } else {
-        window.
+        window.location.href = targetUrl;
+      }
+    }
+
+    function goToAddFriend() {
+      if (!activeStore || !activeStore.botHomeUrl) {
+        alert('尚未設定該櫃位的官方帳號連結');
+        return;
+      }
+      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+        liff.openWindow({ url: activeStore.botHomeUrl, external: false });
+      } else {
+        window.location.href = activeStore.botHomeUrl;
+      }
+    }
+  </script>
+</body>
+</html>
