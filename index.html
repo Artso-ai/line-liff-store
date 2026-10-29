@@ -72,7 +72,7 @@
   </div>
 
   <script>
-    // 1. 各分店設定對照表（需填入對應的 LIFF ID 與 Bot ID）
+    // 1. 各分店設定對照表（後續要擴充 30 個櫃位直接在這裡往下加）
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
@@ -84,7 +84,6 @@
         botBasicId: '@776lwjtv',
         liffId: '2012261758-VtihAEbZ'
       }
-      // 後續只要繼續加 store3, store4... 即可！
     };
 
     function getQueryParam(variable) {
@@ -106,35 +105,22 @@
 
     const itemName = getQueryParam('name') || '精選商品';
     const notionUrl = getQueryParam('url') || '';
-    const storeKey = getQueryParam('store') || 'store1'; // 預設為 store1
+    const storeKey = getQueryParam('store') || 'store1';
 
     document.getElementById('itemTitle').innerText = itemName;
 
-    let activeStore = null;
+    // 取得對應的分店資訊
+    let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
     window.addEventListener('load', async function() {
       try {
-        // 使用全域 LIFF ID 自動初始化，避免固定寫死造成初始化失敗
-        await liff.init({ useGlobalLIFFId: true });
+        // 透過對應分店的 liffId 進行安全初始化
+        await liff.init({ liffId: activeStore.liffId });
 
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
-
-        // 自動抓取當前掃描進來的 LIFF ID
-        const currentLiffId = liff.id;
-        
-        // 優先透過 LIFF ID 反查分店，若對照不到則改用網址上的 store 參數
-        let matchedStore = null;
-        for (let key in storeConfig) {
-          if (storeConfig[key].liffId === currentLiffId) {
-            matchedStore = storeConfig[key];
-            break;
-          }
-        }
-
-        activeStore = matchedStore || storeConfig[storeKey] || storeConfig['store1'];
 
         // 顯示當前分店名稱
         document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
@@ -158,11 +144,8 @@
         return;
       }
 
-      // 組合要傳送的文字訊息並進行完整編碼
       const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
       const encodeText = encodeURIComponent(messageText);
-
-      // 導向該分店專屬的官方帳號聊天室
       const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
 
       window.location.href = targetUrl;
