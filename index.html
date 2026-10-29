@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
   <!-- 絕對破除快取的版本宣告 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_v2"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_session"></script>
   <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
     var vConsole = new window.VConsole();
@@ -124,25 +124,42 @@
       return null;
     }
 
-    const itemName = getQueryParam('name') || '精選商品';
-    const notionUrl = getQueryParam('url') || '';
-
-    // 🛡️ 【100% 鐵人防護網】：使用正規表達式從整串網址強制撈出 store 關鍵字（支援 store1 ~ store99）
+    // 1. 抓取當前網址的參數
+    let itemName = getQueryParam('name');
+    let notionUrl = getQueryParam('url');
     let storeKey = getQueryParam('store');
-    
+
+    // 2. 正規表達式全域備份抓取 (防 Android/iOS 參數遺失)
     if (!storeKey) {
-      var match = window.location.href.match(/store(store)?([0-9]+)/i);
-      // 如果網址裡直接包含 store2 這種字樣，強制把它抓出來
       var fullMatch = window.location.href.match(/store([0-9]+)/i);
       if (fullMatch) {
         storeKey = 'store' + fullMatch[1];
       }
     }
 
-    // 如果還是找不到，預設為 store1
-    storeKey = storeKey || 'store1';
+    // 🛡️ 【關鍵 Session 記憶防護】：
+    // 如果這次成功抓到了參數，立刻把它存進瀏覽器記憶體；
+    // 如果因為 LINE 密碼解鎖導致重新整理、網址參數被吃掉，我們就從記憶體把它救回來！
+    if (storeKey) {
+      sessionStorage.setItem('cached_storeKey', storeKey);
+    } else {
+      storeKey = sessionStorage.getItem('cached_storeKey');
+    }
 
-    // 嚴格對應分店，若對應不到預設回 store1
+    if (itemName) {
+      sessionStorage.setItem('cached_itemName', itemName);
+    } else {
+      itemName = sessionStorage.getItem('cached_itemName') || '精選商品';
+    }
+
+    if (notionUrl) {
+      sessionStorage.setItem('cached_notionUrl', notionUrl);
+    } else {
+      notionUrl = sessionStorage.getItem('cached_notionUrl') || '';
+    }
+
+    // 最終預設保險
+    storeKey = storeKey || 'store1';
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
     // 立即將抓到的分店與商品渲染上畫面，絕不卡住
