@@ -72,19 +72,20 @@
   </div>
 
   <script>
-    // 1. 各分店設定對照表（後續擴充 30 個櫃位直接在這裡往下新增）
+    // 1. 各分店設定對照表（未來擴充 30 個櫃位直接往下新增）
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
-        botBasicId: '@blr1162r',
-        liffId: '2012152585-LsQsJONN'
+        botBasicId: '@blr1162r'
       },
       'store2': {
         name: '亞梭傢俬-台北大巨蛋',
-        botBasicId: '@776lwjtv',
-        liffId: '2012261758-VtihAEbZ'
+        botBasicId: '@776lwjtv'
       }
     };
+
+    // 使用一組確定已開通且穩定的共用 LIFF ID 來進行初始化
+    const stableLiffId = '2012152585-LsQsJONN';
 
     function getQueryParam(variable) {
       try {
@@ -114,8 +115,7 @@
 
     window.addEventListener('load', async function() {
       try {
-        // 透過對應分店的 liffId 進行安全初始化
-        await liff.init({ liffId: activeStore.liffId });
+        await liff.init({ liffId: stableLiffId });
 
         if (!liff.isLoggedIn()) {
           liff.login();
@@ -137,7 +137,7 @@
       `;
     }
 
-    // 跨平台安全的聊天室導向函式 (支援 iOS 與 Android)
+    // 導向對應櫃位聊天室
     function goToChat() {
       if (!activeStore || !activeStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
@@ -148,7 +148,6 @@
       const encodeText = encodeURIComponent(messageText);
       const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
 
-      // 使用 LINE SDK 的 openWindow 確保 iOS 與 Android 皆能強制喚醒聊天室並傳送
       if (liff.isInClient()) {
         liff.openWindow({
           url: targetUrl,
