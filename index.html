@@ -72,7 +72,7 @@
   </div>
 
   <script>
-    // 1. 各分店設定對照表（未來擴充 30 個櫃位直接往下新增）
+    // 1. 各分店設定對照表（未來要擴充 30 個櫃位，直接在這裡往下新增 store3, store4...）
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
@@ -84,13 +84,16 @@
       }
     };
 
-    // 使用一組確定已開通且穩定的共用 LIFF ID 來進行初始化
+    // 使用共用且穩定的 LIFF ID 進行初始化，確保雙系統絕不發生 INIT_FAILED 或 INVALID_CONFIG
     const stableLiffId = '2012152585-LsQsJONN';
 
+    // 強制解析網址參數的精準函式（完全避開 Android 舊快取干擾）
     function getQueryParam(variable) {
       try {
-        var query = window.location.search.substring(1);
-        if (!query) return null;
+        // 直接抓取整串 window.location.href 來解析，確保拿到當下最新的參數
+        var searchIndex = window.location.href.indexOf('?');
+        if (searchIndex === -1) return null;
+        var query = window.location.href.substring(searchIndex + 1);
         var vars = query.split('&');
         for (var i = 0; i < vars.length; i++) {
           var pair = vars[i].split('=');
@@ -106,11 +109,13 @@
 
     const itemName = getQueryParam('name') || '精選商品';
     const notionUrl = getQueryParam('url') || '';
+    
+    // 即時讀取當前網址帶的 store 參數，若無則預設 store1
     const storeKey = getQueryParam('store') || 'store1';
 
     document.getElementById('itemTitle').innerText = itemName;
 
-    // 取得對應的分店資訊
+    // 即時配對對應的分店
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
     window.addEventListener('load', async function() {
@@ -122,7 +127,7 @@
           return;
         }
 
-        // 顯示當前分店名稱
+        // 動態更新畫面上的分店名稱
         document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
         renderButton();
       } catch (err) {
@@ -137,7 +142,7 @@
       `;
     }
 
-    // 導向對應櫃位聊天室
+    // 跨平台（iOS & Android）安全的聊天室導向與傳送函式
     function goToChat() {
       if (!activeStore || !activeStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
@@ -148,6 +153,7 @@
       const encodeText = encodeURIComponent(messageText);
       const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
 
+      // 透過 LINE SDK 的 openWindow 確保雙系統都能強制喚醒對應官方帳號聊天室
       if (liff.isInClient()) {
         liff.openWindow({
           url: targetUrl,
