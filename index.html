@@ -73,21 +73,21 @@
 
   <script>
     // 1. 各分店代號對照表（在這裡設定代號對應的 Bot ID 與分店名稱）
-   const storeConfig = {
+    const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
         botBasicId: '@blr1162r',
-        liffId: '2012152585-LsQsJONN' // 備用
+        liffId: '2012152585-LsQsJONN'
       },
       'store2': {
         name: '亞梭傢俬-台北大巨蛋',
         botBasicId: '@776lwjtv',
-        liffId: '2012259273-pJDuO6WL' // 備用
+        liffId: '2012261758-VtihAEbZ'
       }
       // 後續只要繼續加 store3, store4... 即可！
     };
 
-    // 預設的 LIFF ID (隨便一個已開通的 LIFF ID 即可，用來初始化 LINE 登入環境)
+    // 預設的 LIFF ID (用來初始化 LINE 登入環境)
     const defaultLiffId = '2012152585-LsQsJONN';
 
     function getQueryParam(variable) {
@@ -140,13 +140,14 @@
       `;
     }
 
-    // 導向對應櫃位聊天室
+    // 導向對應櫃位聊天室（已優化編碼，確保商品與 Notion 連結完整傳送）
     function goToChat() {
       if (!currentStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
         return;
       }
 
+      // 組合要傳送的文字訊息並進行完整編碼
       const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
       const encodeText = encodeURIComponent(messageText);
 
