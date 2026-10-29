@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- 加上時間參數強制破除快取 -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=999"></script>
   <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
     var vConsole = new window.VConsole();
@@ -77,15 +78,15 @@
   <div class="card">
     <h3 id="storeNameDisplay">櫃位商品引導</h3>
     <h2 id="itemTitle">載入中...</h2>
-    <p id="guideText" style="display:none;">點擊下方按鈕，直接將商品資訊傳送至專屬聊天室！</p>
+    <p id="guideText">點擊下方按鈕，直接將商品資訊傳送至專屬聊天室！</p>
     
     <div id="actionArea">
-      <button class="btn btn-secondary" id="step1Btn">讀取中...</button>
+      <button class="btn btn-secondary">讀取中...</button>
     </div>
   </div>
 
   <script>
-    // 1. 各分店設定對照表（後續 30 個櫃位直接往下新增）
+    // 1. 各分店設定對照表
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
@@ -101,11 +102,13 @@
 
     const stableLiffId = '2012152585-LsQsJONN';
 
+    // 取得網址參數
     function getQueryParam(variable) {
       try {
-        var searchIndex = window.location.href.indexOf('?');
+        var href = window.location.href;
+        var searchIndex = href.indexOf('?');
         if (searchIndex === -1) return null;
-        var query = window.location.href.substring(searchIndex + 1);
+        var query = href.substring(searchIndex + 1);
         var vars = query.split('&');
         for (var i = 0; i < vars.length; i++) {
           var pair = vars[i].split('=');
@@ -123,71 +126,37 @@
     const notionUrl = getQueryParam('url') || '';
     const storeKey = getQueryParam('store') || 'store1';
 
-    // 立即將商品名稱與分店名稱渲染到畫面上，避免等待
-    document.getElementById('itemTitle').innerText = itemName;
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
+
+    // 立即渲染畫面，保證不卡住
+    document.getElementById('itemTitle').innerText = itemName;
     document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
+    
+    document.getElementById('actionArea').innerHTML = `
+      <button class="btn" onclick="goToChat()">發送【${itemName}】至專屬聊天室</button>
+      <button class="btn btn-unblock" onclick="goToAddFriend()">若無法傳送？點此解除封鎖/加好友</button>
+      <div class="notice">
+        💡 若點擊發送無反應，通常是因為曾封鎖此分店帳號。請點擊下方橘色按鈕解除封鎖後，即可正常發送！
+      </div>
+    `;
 
-    // 立即渲染按鈕，確保畫面絕對不會卡住
-    renderButton();
-
+    // 背景初始化 LIFF
     window.addEventListener('load', async function() {
       try {
-        await liff.init({ liffId: stableLiffId });
-        if (!liff.isLoggedIn()) {
-          liff.login();
+        if (typeof liff !== 'undefined') {
+          await liff.init({ liffId: stableLiffId });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+          }
         }
       } catch (err) {
         console.error('LIFF 初始化警告:', err);
       }
     });
 
-    function renderButton() {
-      document.getElementById('guideText').style.display = 'block';
-      document.getElementById('actionArea').innerHTML = `
-        <button class="btn" onclick="goToChat()">發送【${itemName}】至專屬聊天室</button>
-        <button class="btn btn-unblock" onclick="goToAddFriend()">若無法傳送？點此解除封鎖/加好友</button>
-        <div class="notice">
-          💡 若點擊發送無反應，通常是因為曾封鎖此分店帳號。請點擊下方橘色按鈕解除封鎖後，即可正常發送！
-        </div>
-      `;
-    }
-
     function goToChat() {
       if (!activeStore || !activeStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
         return;
       }
-
-      const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
-      const encodeText = encodeURIComponent(messageText);
-      const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
-
-      if (typeof l !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        liff.openWindow({
-          url: targetUrl,
-          external: false
-        });
-      } else {
-        window.location.href = targetUrl;
-      }
-    }
-
-    function goToAddFriend() {
-      if (!activeStore || !activeStore.botHomeUrl) {
-        alert('尚未設定該櫃位的官方帳號連結');
-        return;
-      }
-
-      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        liff.openWindow({
-          url: activeStore.botHomeUrl,
-          external: false
-        });
-      } else {
-        window.location.href = activeStore.botHomeUrl;
-      }
-    }
-  </script>
-</body>
-</html>
+      const messageText = `【${itemName}】商品詳細頁面： ${
