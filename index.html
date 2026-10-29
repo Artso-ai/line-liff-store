@@ -72,7 +72,7 @@
   </div>
 
   <script>
-    // 1. 各分店設定對照表（後續要擴充 30 個櫃位直接在這裡往下加）
+    // 1. 各分店設定對照表（後續擴充 30 個櫃位直接在這裡往下新增）
     const storeConfig = {
       'store1': {
         name: '亞梭傢俬-特力和樂HOLA新店店',
@@ -137,7 +137,7 @@
       `;
     }
 
-    // 導向對應櫃位聊天室
+    // 跨平台安全的聊天室導向函式 (支援 iOS 與 Android)
     function goToChat() {
       if (!activeStore || !activeStore.botBasicId) {
         alert('尚未設定該櫃位的 Bot ID');
@@ -148,7 +148,15 @@
       const encodeText = encodeURIComponent(messageText);
       const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
 
-      window.location.href = targetUrl;
+      // 使用 LINE SDK 的 openWindow 確保 iOS 與 Android 皆能強制喚醒聊天室並傳送
+      if (liff.isInClient()) {
+        liff.openWindow({
+          url: targetUrl,
+          external: false
+        });
+      } else {
+        window.location.href = targetUrl;
+      }
     }
   </script>
 </body>
