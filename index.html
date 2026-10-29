@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
   <!-- 絕對破除快取的版本宣告 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_session"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_ultimate"></script>
   <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
     var vConsole = new window.VConsole();
@@ -104,7 +104,7 @@
 
     const stableLiffId = '2012152585-LsQsJONN';
 
-    // 通用標準參數抓取函式
+    // 嚴格參數抓取函式
     function getQueryParam(variable) {
       try {
         var href = window.location.href;
@@ -124,12 +124,12 @@
       return null;
     }
 
-    // 1. 抓取當前網址的參數
+    // 1. 優先從當下網址抓取參數
     let itemName = getQueryParam('name');
     let notionUrl = getQueryParam('url');
     let storeKey = getQueryParam('store');
 
-    // 2. 正規表達式全域備份抓取 (防 Android/iOS 參數遺失)
+    // 2. 如果網址參數被快取吃掉，透過正規表達式從整串網址強制撈出 store 關鍵字
     if (!storeKey) {
       var fullMatch = window.location.href.match(/store([0-9]+)/i);
       if (fullMatch) {
@@ -137,28 +137,37 @@
       }
     }
 
-    // 🛡️ 【關鍵 Session 記憶防護】：
-    // 如果這次成功抓到了參數，立刻把它存進瀏覽器記憶體；
-    // 如果因為 LINE 密碼解鎖導致重新整理、網址參數被吃掉，我們就從記憶體把它救回來！
+    // 🛡️ 【終極雙重防護網：處理密碼鎖重載與 Android 快取】
+    // 取得當前瀏覽行程中暫存的分店代號
+    let sessionStore = sessionStorage.getItem('target_storeKey');
+
     if (storeKey) {
-      sessionStorage.setItem('cached_storeKey', storeKey);
+      // 如果網址帶有新的分店，且跟暫存的不一樣（代表掃了新店或切換了櫃位）
+      if (sessionStore && storeKey !== sessionStore) {
+        sessionStorage.setItem('target_storeKey', storeKey);
+        if (itemName) sessionStorage.setItem('target_itemName', itemName);
+        if (notionUrl) sessionStorage.setItem('target_notionUrl', notionUrl);
+        
+        // 強制重新整理，徹底打碎 Android 快取，確保全新載入
+        if (!window.location.href.includes('_ref=1')) {
+          window.location.replace(window.location.href + (window.location.href.includes('?') ? '&' : '?') + '_ref=1');
+        }
+      } else {
+        // 第一次進來，直接寫入暫存
+        sessionStorage.setItem('target_storeKey', storeKey);
+        if (itemName) sessionStorage.setItem('target_itemName', itemName);
+        if (notionUrl) sessionStorage.setItem('target_notionUrl', notionUrl);
+      }
     } else {
-      storeKey = sessionStorage.getItem('cached_storeKey');
+      // 遭遇 LINE 密碼解鎖 / Face ID / 指紋登入導致網址參數遺失時，從 sessionStorage 完美救回！
+      storeKey = sessionStorage.getItem('target_storeKey');
     }
 
-    if (itemName) {
-      sessionStorage.setItem('cached_itemName', itemName);
-    } else {
-      itemName = sessionStorage.getItem('cached_itemName') || '精選商品';
-    }
+    // 補齊商品名稱與 Notion 連結的 Session 救回機制
+    itemName = itemName || sessionStorage.getItem('target_itemName') || '精選商品';
+    notionUrl = notionUrl || sessionStorage.getItem('target_notionUrl') || '';
 
-    if (notionUrl) {
-      sessionStorage.setItem('cached_notionUrl', notionUrl);
-    } else {
-      notionUrl = sessionStorage.getItem('cached_notionUrl') || '';
-    }
-
-    // 最終預設保險
+    // 最終保險預設
     storeKey = storeKey || 'store1';
     let activeStore = storeConfig[storeKey] || storeConfig['store1'];
 
@@ -200,21 +209,4 @@
       if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
         liff.openWindow({ url: targetUrl, external: false });
       } else {
-        window.location.href = targetUrl;
-      }
-    }
-
-    function goToAddFriend() {
-      if (!activeStore || !activeStore.botHomeUrl) {
-        alert('尚未設定該櫃位的官方帳號連結');
-        return;
-      }
-      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        liff.openWindow({ url: activeStore.botHomeUrl, external: false });
-      } else {
-        window.location.href = activeStore.botHomeUrl;
-      }
-    }
-  </script>
-</body>
-</html>
+        window.
