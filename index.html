@@ -1,330 +1,200 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>商品引導與領取</title>
-  <!-- 絕對破除快取的版本宣告 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js?v=20261029_safe"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
-  <script>
-    var vConsole = new window.VConsole();
-  </script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f7f9fa;
-      text-align: center;
-      padding: 30px 20px;
-      color: #333;
+    * {
+      box-sizing: border-box;
     }
-    .card {
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
+    body {
+      margin: 0;
       padding: 30px 20px;
+      background: #f7f9fa;
+      color: #333;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Noto Sans TC", sans-serif;
+    }
+
+    .card {
       max-width: 400px;
       margin: 0 auto;
+      padding: 30px 20px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
-    h3 {
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 5px;
-    }
-    h2 {
-      color: #06C755;
-      font-size: 22px;
-      margin-bottom: 15px;
-    }
-    p {
+
+    .store-name {
+      margin: 0 0 8px;
       color: #666;
-      font-size: 15px;
-      margin-bottom: 25px;
-      line-height: 1.5;
+      font-size: 14px;
     }
+
+    h1 {
+      margin: 0 0 15px;
+      color: #08783a;
+      font-size: 22px;
+      overflow-wrap: anywhere;
+    }
+
+    .guide,
+    .notice {
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .guide {
+      margin: 0 0 20px;
+      font-size: 15px;
+    }
+
     .btn {
-      background-color: #06C755;
-      color: white;
-      border: none;
+      display: block;
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 14px 18px;
       border-radius: 25px;
-      padding: 14px 28px;
+      background: #08783a;
+      color: #fff;
       font-size: 16px;
       font-weight: bold;
-      width: 100%;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgba(6, 199, 85, 0.3);
-      margin-bottom: 12px;
+      text-decoration: none;
     }
-    .btn-secondary {
-      background-color: #00B900;
-    }
+
     .btn-unblock {
-      background-color: #f39c12;
-      box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+      background: #a44e0a;
     }
+
     .notice {
-      font-size: 13px;
-      color: #e67e22;
-      margin-top: 15px;
-      line-height: 1.4;
-      background: #fdf3e7;
+      margin: 14px 0 0;
       padding: 10px;
       border-radius: 8px;
+      background: #fdf3e7;
+      color: #78400f;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
+  <main class="card">
+    <p id="storeNameDisplay" class="store-name">櫃位商品引導</p>
+    <h1 id="itemTitle">商品載入中…</h1>
+    <p id="guideText" class="guide" role="status">
+      正在讀取 QR 碼的櫃位與商品資料。
+    </p>
 
-  <div class="card">
-    <h3 id="storeNameDisplay">櫃位商品引導</h3>
-    <h2 id="itemTitle">商品載入中...</h2>
-    <p id="guideText">點擊下方按鈕，直接將商品資訊傳送至專屬聊天室！</p>
-    
-    <div id="actionArea">
-      <button class="btn btn-secondary">畫面準備中...</button>
+    <div id="actionArea" hidden>
+      <a id="chatLink" class="btn">到 LINE 聊天室發送商品資訊</a>
+      <a id="friendLink" class="btn btn-unblock">加入好友／解除封鎖</a>
+      <p class="notice">
+        開啟聊天室後，商品資訊會帶入輸入欄，請按送出。
+        如有需要，可先加入該櫃位好友或解除封鎖。
+      </p>
     </div>
-  </div>
+  </main>
 
   <script>
-    // 💡 【未來擴充區】：未來擴充至 30 家店，直接在這裡往下新增 store3, store4 ... store30
+    const stableLiffId = '2012152585-LsQsJONN';
+
     const storeConfig = {
-      'store1': {
-        name: '亞梭傢俬-中和特力屋',
-        botBasicId: '@405ksdzh',
-        botHomeUrl: 'https://line.me/R/ti/p/@405ksdzh'
-      },
-      'store2': {
-        name: '亞梭傢俬-台北大巨蛋',
-        botBasicId: '@776lwjtv',
-        botHomeUrl: 'https://line.me/R/ti/p/@776lwjtv'
-      },
-      'store3': {
-        name: '亞梭傢俬-新店裕隆城',
-        botBasicId: '@233zfbxf',
-        botHomeUrl: 'https://line.me/R/ti/p/@233zfbxf'
-      },
-      'store4': {
-        name: '亞梭傢俬-台北統一時代',
-        botBasicId: '@033zlrdy',
-        botHomeUrl: 'https://line.me/R/ti/p/@033zlrdy'
-      },
-      'store5': {
-        name: '竹北大遠百',
-        botBasicId: '@333uxrxj',
-        botHomeUrl: 'https://line.me/R/ti/p/@333uxrxj'
-      },
-      'store6': {
-        name: '亞梭傢俬-高雄義享時尚廣場',
-        botBasicId: '@238zgihb',
-        botHomeUrl: 'https://line.me/R/ti/p/@238zgihb'
-      },
-      'store7': {
-        name: '亞梭傢俬 新莊宏匯廣場',
-        botBasicId: '@170twboy',
-        botHomeUrl: 'https://line.me/R/ti/p/@170twboy'
-      },
-      'store8': {
-        name: 'SOGO百貨復興館',
-        botBasicId: '@agz3126p',
-        botHomeUrl: 'https://line.me/R/ti/p/@agz3126p'
-      },
-      'store9': {
-        name: '特力和樂HOLA左營店',
-        botBasicId: '@ott3139w',
-        botHomeUrl: 'https://line.me/R/ti/p/@ott3139w'
-      },
-      'store10': {
-        name: '亞梭傢俬-高雄統一夢時代',
-        botBasicId: '@huw2673i',
-        botHomeUrl: 'https://line.me/R/ti/p/@huw2673i'
-      },
-      'store11': {
-        name: '亞梭傢俬-新光三越左營店',
-        botBasicId: '@lsx8508l',
-        botHomeUrl: 'https://line.me/R/ti/p/@lsx8508l'
-      },
-      'store12': {
-        name: '南紡購物中心',
-        botBasicId: '@ixf9186d',
-        botHomeUrl: 'https://line.me/R/ti/p/@ixf9186d'
-      },
-      'store13': {
-        name: '特力和樂HOLA仁德店',
-        botBasicId: '@avx9487o',
-        botHomeUrl: 'https://line.me/R/ti/p/avx9487o'
-      },
-      'store14': {
-        name: '新光三越台南西門店',
-        botBasicId: '@xbk0646v',
-        botHomeUrl: 'https://line.me/R/ti/p/xbk0646v'
-      },
-      'store15': {
-        name: '特力和樂HOLA北屯店',
-        botBasicId: '@jsy7597j',
-        botHomeUrl: 'https://line.me/R/ti/p/jsy7597j'
-      },
-      'store16': {
-        name: '台中大遠百',
-        botBasicId: '@txg6284j',
-        botHomeUrl: 'https://line.me/R/ti/p/txg6284j'
-      },
-      'store17': {
-        name: '新光三越台中店',
-        botBasicId: '@hbx5585i',
-        botHomeUrl: 'https://line.me/R/ti/p/hbx5585i'
-      },
-      'store18': {
-        name: '新竹巨城SOGO',
-        botBasicId: '@iax9277v',
-        botHomeUrl: 'https://line.me/R/ti/p/iax9277v'
-      },
-      'store19': {
-        name: '特力和樂HOLA苗栗店',
-        botBasicId: '@zoi1881z',
-        botHomeUrl: 'https://line.me/R/ti/p/zoi1881z'
-      },
-      'store20': {
-        name: '特力和樂HOLA內湖店',
-        botBasicId: '@ypl8602j',
-        botHomeUrl: 'https://line.me/R/ti/p/ypl8602j'
-      },
-      'store21': {
-        name: '桃園南崁特力家居',
-        botBasicId: '@qwm3285b',
-        botHomeUrl: 'https://line.me/R/ti/p/qwm3285b'
-      },
-      'store22': {
-        name: '桃園遠百',
-        botBasicId: '@bvr7185p',
-        botHomeUrl: 'https://line.me/R/ti/p/bvr7185p'
-      },
-      'store23': {
-        name: '亞梭傢俬-板橋大遠百店',
-        botBasicId: '@ovh2520g',
-        botHomeUrl: 'https://line.me/R/ti/p/ovh2520g'
-      },
-      'store24': {
-        name: '新光三越A8館',
-        botBasicId: 'jko2846y',
-        botHomeUrl: 'https://line.me/R/ti/p/jko2846y'
-      }
-   
+      store1:  { name: '亞梭傢俬-中和特力屋', botBasicId: '@405ksdzh' },
+      store2:  { name: '亞梭傢俬-台北大巨蛋', botBasicId: '@776lwjtv' },
+      store3:  { name: '亞梭傢俬-新店裕隆城', botBasicId: '@233zfbxf' },
+      store4:  { name: '亞梭傢俬-台北統一時代', botBasicId: '@033zlrdy' },
+      store5:  { name: '竹北大遠百', botBasicId: '@333uxrxj' },
+      store6:  { name: '亞梭傢俬-高雄義享時尚廣場', botBasicId: '@238zgihb' },
+      store7:  { name: '亞梭傢俬 新莊宏匯廣場', botBasicId: '@170twboy' },
+      store8:  { name: 'SOGO百貨復興館', botBasicId: '@agz3126p' },
+      store9:  { name: '特力和樂HOLA左營店', botBasicId: '@ott3139w' },
+      store10: { name: '亞梭傢俬-高雄統一夢時代', botBasicId: '@huw2673i' },
+      store11: { name: '亞梭傢俬-新光三越左營店', botBasicId: '@lsx8508l' },
+      store12: { name: '南紡購物中心', botBasicId: '@ixf9186d' },
+      store13: { name: '特力和樂HOLA仁德店', botBasicId: '@avx9487o' },
+      store14: { name: '新光三越台南西門店', botBasicId: '@xbk0646v' },
+      store15: { name: '特力和樂HOLA北屯店', botBasicId: '@jsy7597j' },
+      store16: { name: '台中大遠百', botBasicId: '@txg6284j' },
+      store17: { name: '新光三越台中店', botBasicId: '@hbx5585i' },
+      store18: { name: '新竹巨城SOGO', botBasicId: '@iax9277v' },
+      store19: { name: '特力和樂HOLA苗栗店', botBasicId: '@zoi1881z' },
+      store20: { name: '特力和樂HOLA內湖店', botBasicId: '@ypl8602j' },
+      store21: { name: '桃園南崁特力家居', botBasicId: '@qwm3285b' },
+      store22: { name: '桃園遠百', botBasicId: '@bvr7185p' },
+      store23: { name: '亞梭傢俬-板橋大遠百店', botBasicId: '@ovh2520g' },
+      store24: { name: '新光三越A8館', botBasicId: '@jko2846y' }
+    };
 
-    // 嚴格參數抓取函式
-    function getQueryParam(variable) {
+    const storeNameDisplay = document.getElementById('storeNameDisplay');
+    const itemTitle = document.getElementById('itemTitle');
+    const guideText = document.getElementById('guideText');
+    const actionArea = document.getElementById('actionArea');
+    const chatLink = document.getElementById('chatLink');
+    const friendLink = document.getElementById('friendLink');
+
+    function showError(message) {
+      itemTitle.textContent = '無法開啟商品資訊';
+      guideText.textContent = message;
+      actionArea.hidden = true;
+    }
+
+    async function initProductPage() {
       try {
-        var href = window.location.href;
-        var searchIndex = href.indexOf('?');
-        if (searchIndex === -1) return null;
-        var query = href.substring(searchIndex + 1);
-        var vars = query.split('&');
-        for (var i = 0; i < vars.length; i++) {
-          var pair = vars[i].split('=');
-          if (decodeURIComponent(pair[0]) === variable) {
-            return decodeURIComponent(pair[1]);
-          }
-        }
-      } catch(e) {
-        console.error('參數解析錯誤:', e);
-      }
-      return null;
-    }
-
-    // 1. 【當下網址參數優先】抓取當前網址參數
-    let itemName = getQueryParam('name');
-    let notionUrl = getQueryParam('url');
-    let storeKey = getQueryParam('store');
-
-    // 如果網址沒有 store，透過正規表達式從整串網址強制撈出 store 關鍵字
-    if (!storeKey) {
-      var fullMatch = window.location.href.match(/store([0-9]+)/i);
-      if (fullMatch) {
-        storeKey = 'store' + fullMatch[1];
-      }
-    }
-
-    // 2. 嚴格落實：當下網址優先，Session 僅作密碼鎖/Face ID 驗證時的救援備用
-    if (storeKey) {
-      sessionStorage.setItem('target_storeKey', storeKey);
-    } else {
-      storeKey = sessionStorage.getItem('target_storeKey');
-    }
-
-    if (itemName) {
-      sessionStorage.setItem('target_itemName', itemName);
-    } else {
-      itemName = sessionStorage.getItem('target_itemName') || '精選商品';
-    }
-
-    if (notionUrl) {
-      sessionStorage.setItem('target_notionUrl', notionUrl);
-    } else {
-      notionUrl = sessionStorage.getItem('target_notionUrl') || '';
-    }
-
-    // 最終預設保險
-    storeKey = storeKey || 'store1';
-    let activeStore = storeConfig[storeKey] || storeConfig['store1'];
-
-    // 💡 【絕對不卡住】：在網頁一讀到 JavaScript 的瞬間，直接將正確分店與商品寫入畫面！
-    document.getElementById('itemTitle').innerText = itemName;
-    document.getElementById('storeNameDisplay').innerText = `櫃位：${activeStore.name}`;
-    
-    document.getElementById('actionArea').innerHTML = `
-      <button class="btn" onclick="goToChat()">發送【${itemName}】至專屬聊天室</button>
-      <button class="btn btn-unblock" onclick="goToAddFriend()">若無法傳送？點此解除封鎖/加好友</button>
-      <div class="notice">
-        💡 若點擊發送無反應，通常是因為曾封鎖此分店帳號。請點擊下方橘色按鈕解除封鎖後，即可正常發送！
-      </div>
-    `;
-
-    // 3. 非同步在背景初始化 LIFF（完全不阻塞畫面渲染，即使慢也不影響按鈕點擊）
-    setTimeout(function() {
-      try {
-        if (typeof liff !== 'undefined') {
-          liff.init({ liffId: stableLiffId }).then(function() {
-            if (!liff.isLoggedIn()) {
-              liff.login();
-            }
-          }).catch(function(err) {
-            console.error('LIFF 初始化背景錯誤:', err);
-          });
-        }
-      } catch (e) {
-        console.error('LIFF 執行異常:', e);
-      }
-    }, 100);
-
-    // 4. 點擊發送至聊天室
-    function goToChat() {
-      if (!activeStore || !activeStore.botBasicId) {
-        alert('尚未設定該櫃位的 Bot ID');
+        await liff.init({
+          liffId: stableLiffId,
+          withLoginOnExternalBrowser: false
+        });
+      } catch (error) {
+        console.error('LIFF 初始化失敗', error);
+        showError('商品頁暫時無法載入，請重新掃描商品上的 QR 碼。');
         return;
       }
-      const messageText = `【${itemName}】商品詳細頁面： ${notionUrl}`;
-      const encodeText = encodeURIComponent(messageText);
-      const targetUrl = `https://line.me/R/oaMessage/${activeStore.botBasicId}/?text=${encodeText}`;
 
-      // 檢查是否在 LINE App 內
-      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        liff.openWindow({ url: targetUrl, external: false });
-      } else {
-        window.location.href = targetUrl;
-      }
-    }
+      const params = new URLSearchParams(window.location.search);
+      const storeKey = (params.get('store') || '').trim().toLowerCase();
+      const itemName = (params.get('name') || '').trim();
+      const productUrl = (params.get('url') || '').trim();
 
-    // 5. 點擊解除封鎖 / 加好友
-    function goToAddFriend() {
-      if (!activeStore || !activeStore.botHomeUrl) {
-        alert('尚未設定該櫃位的官方帳號連結');
+      if (!Object.prototype.hasOwnProperty.call(storeConfig, storeKey)) {
+        showError('找不到對應櫃位，請重新掃描商品上的 QR 碼。');
         return;
       }
-      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        liff.openWindow({ url: activeStore.botHomeUrl, external: false });
-      } else {
-        window.location.href = activeStore.botHomeUrl;
+
+      if (!itemName || !productUrl) {
+        showError('這張 QR 碼缺少商品資料，請重新掃描或洽詢櫃位人員。');
+        return;
       }
+
+      let parsedProductUrl;
+
+      try {
+        parsedProductUrl = new URL(productUrl);
+        if (parsedProductUrl.protocol !== 'https:') {
+          throw new Error('商品網址必須使用 HTTPS');
+        }
+      } catch (error) {
+        showError('商品連結格式有誤，請洽詢櫃位人員。');
+        return;
+      }
+
+      const activeStore = storeConfig[storeKey];
+      const encodedBotId = encodeURIComponent(activeStore.botBasicId);
+      const messageText = `【${itemName}】商品詳細頁面： ${parsedProductUrl.href}`;
+
+      storeNameDisplay.textContent = `櫃位：${activeStore.name}`;
+      itemTitle.textContent = itemName;
+      guideText.textContent = '點擊下方按鈕，開啟這個櫃位的 LINE 聊天室。';
+
+      chatLink.href =
+        `https://line.me/R/oaMessage/${encodedBotId}/?${encodeURIComponent(messageText)}`;
+      friendLink.href = `https://line.me/R/ti/p/${encodedBotId}`;
+      actionArea.hidden = false;
     }
+
+    initProductPage();
   </script>
 </body>
 </html>
