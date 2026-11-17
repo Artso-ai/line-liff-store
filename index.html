@@ -2,9 +2,10 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>商品引導與領取</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>櫃位商品引導</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -15,9 +16,9 @@
       padding: 30px 20px;
       background: #f7f9fa;
       color: #333;
-      text-align: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
         "Noto Sans TC", sans-serif;
+      text-align: center;
     }
 
     .card {
@@ -42,20 +43,15 @@
       overflow-wrap: anywhere;
     }
 
-    .guide,
-    .notice {
+    .guide {
+      margin: 0 0 20px;
       color: #555;
+      font-size: 15px;
       line-height: 1.6;
     }
 
-    .guide {
-      margin: 0 0 20px;
-      font-size: 15px;
-    }
-
-    .btn {
+    .button {
       display: block;
-      width: 100%;
       margin-bottom: 12px;
       padding: 14px 18px;
       border-radius: 25px;
@@ -66,20 +62,12 @@
       text-decoration: none;
     }
 
-    .btn-unblock {
+    .button-secondary {
       background: #a44e0a;
-    }
-
-    .notice {
-      margin: 14px 0 0;
-      padding: 10px;
-      border-radius: 8px;
-      background: #fdf3e7;
-      color: #78400f;
-      font-size: 13px;
     }
   </style>
 </head>
+
 <body>
   <main class="card">
     <p id="storeNameDisplay" class="store-name">櫃位商品引導</p>
@@ -89,43 +77,38 @@
     </p>
 
     <div id="actionArea" hidden>
-      <a id="chatLink" class="btn">到 LINE 聊天室發送商品資訊</a>
-      <a id="friendLink" class="btn btn-unblock">加入好友／解除封鎖</a>
-      <p class="notice">
-        開啟聊天室後，商品資訊會帶入輸入欄，請按送出。
-        如有需要，可先加入該櫃位好友或解除封鎖。
-      </p>
+      <a id="chatLink" class="button">到 LINE 聊天室發送商品資訊</a>
+      <a id="friendLink" class="button button-secondary">加入好友／解除封鎖</a>
     </div>
   </main>
 
   <script>
-    const stableLiffId = '2012152585-LsQsJONN';
-
+    // 每家分店只維護一筆設定。請將空白的 liffId 填上該分店的 LIFF ID。
     const storeConfig = {
-      store1:  { name: '亞梭傢俬-中和特力屋', botBasicId: '@405ksdzh' },
-      store2:  { name: '亞梭傢俬-台北大巨蛋', botBasicId: '@776lwjtv' },
-      store3:  { name: '亞梭傢俬-新店裕隆城', botBasicId: '@233zfbxf' },
-      store4:  { name: '亞梭傢俬-台北統一時代', botBasicId: '@033zlrdy' },
-      store5:  { name: '竹北大遠百', botBasicId: '@333uxrxj' },
-      store6:  { name: '亞梭傢俬-高雄義享時尚廣場', botBasicId: '@238zgihb' },
-      store7:  { name: '亞梭傢俬 新莊宏匯廣場', botBasicId: '@170twboy' },
-      store8:  { name: 'SOGO百貨復興館', botBasicId: '@agz3126p' },
-      store9:  { name: '特力和樂HOLA左營店', botBasicId: '@ott3139w' },
-      store10: { name: '亞梭傢俬-高雄統一夢時代', botBasicId: '@huw2673i' },
-      store11: { name: '亞梭傢俬-新光三越左營店', botBasicId: '@lsx8508l' },
-      store12: { name: '南紡購物中心', botBasicId: '@ixf9186d' },
-      store13: { name: '特力和樂HOLA仁德店', botBasicId: '@avx9487o' },
-      store14: { name: '新光三越台南西門店', botBasicId: '@xbk0646v' },
-      store15: { name: '特力和樂HOLA北屯店', botBasicId: '@jsy7597j' },
-      store16: { name: '台中大遠百', botBasicId: '@txg6284j' },
-      store17: { name: '新光三越台中店', botBasicId: '@hbx5585i' },
-      store18: { name: '新竹巨城SOGO', botBasicId: '@iax9277v' },
-      store19: { name: '特力和樂HOLA苗栗店', botBasicId: '@zoi1881z' },
-      store20: { name: '特力和樂HOLA內湖店', botBasicId: '@ypl8602j' },
-      store21: { name: '桃園南崁特力家居', botBasicId: '@qwm3285b' },
-      store22: { name: '桃園遠百', botBasicId: '@bvr7185p' },
-      store23: { name: '亞梭傢俬-板橋大遠百店', botBasicId: '@ovh2520g' },
-      store24: { name: '新光三越A8館', botBasicId: '@jko2846y' }
+      store1:  { name: '亞梭傢俬-中和特力屋', botBasicId: '@405ksdzh', liffId: '2012259273-pJDuO6WL' },
+      store2:  { name: '亞梭傢俬-台北大巨蛋', botBasicId: '@776lwjtv', liffId: '2012261758-VtihAEbZ' },
+      store3:  { name: '亞梭傢俬-新店裕隆城', botBasicId: '@233zfbxf', liffId: '2012288127-G0zMFAuf' },
+      store4:  { name: '亞梭傢俬-台北統一時代', botBasicId: '@033zlrdy', liffId: '2012288164-CPmRoMWe' },
+      store5:  { name: '竹北大遠百', botBasicId: '@333uxrxj', liffId: '2012288187-iYiVCtPG' },
+      store6:  { name: '亞梭傢俬-高雄義享時尚廣場', botBasicId: '@238zgihb', liffId: '2012288214-KpxqBgCr' },
+      store7:  { name: '亞梭傢俬 新莊宏匯廣場', botBasicId: '@170twboy', liffId: '2012288236-IDKzBPx2' },
+      store8:  { name: 'SOGO百貨復興館', botBasicId: '@agz3126p', liffId: '2012288251-To7QVnmL' },
+      store9:  { name: '特力和樂HOLA左營店', botBasicId: '@ott3139w', liffId: '2012288307-clm7Iaty' },
+      store10: { name: '亞梭傢俬-高雄統一夢時代', botBasicId: '@huw2673i', liffId: '2012288353-HJpR3KKY' },
+      store11: { name: '亞梭傢俬-新光三越左營店', botBasicId: '@lsx8508l', liffId: '2012288369-AjCjwtlV' },
+      store12: { name: '南紡購物中心', botBasicId: '@ixf9186d', liffId: '2012288386-8ZseAhN6' },
+      store13: { name: '特力和樂HOLA仁德店', botBasicId: '@avx9487o', liffId: '2012288419-79V4yzIE' },
+      store14: { name: '新光三越台南西門店', botBasicId: '@xbk0646v', liffId: '2012288436-SFUzPa0s' },
+      store15: { name: '特力和樂HOLA北屯店', botBasicId: '@jsy7597j', liffId: '2012288452-di0Abw43' },
+      store16: { name: '台中大遠百', botBasicId: '@txg6284j', liffId: '2012288941-BKv7jRCU' },
+      store17: { name: '新光三越台中店', botBasicId: '@hbx5585i', liffId: '2012288969-NtZN4ZFK' },
+      store18: { name: '新竹巨城SOGO', botBasicId: '@iax9277v', liffId: '2012288993-5N99YLPJ' },
+      store19: { name: '特力和樂HOLA苗栗店', botBasicId: '@zoi1881z', liffId: '2012289013-I4TEEW20' },
+      store20: { name: '特力和樂HOLA內湖店', botBasicId: '@ypl8602j', liffId: '2012289031-J1vJm3gU' },
+      store21: { name: '桃園南崁特力家居', botBasicId: '@qwm3285b', liffId: '2012289062-AMjcl5MR' },
+      store22: { name: '桃園遠百', botBasicId: '@bvr7185p', liffId: '2012289083-hLrMe3g3' },
+      store23: { name: '亞梭傢俬-板橋大遠百店', botBasicId: '@ovh2520g', liffId: '2012289106-vyUjnzfr'},
+      store24: { name: '新光三越A8館', botBasicId: '@jko2846y', liffId: '2012289126-7bBIY9r3' }
     };
 
     const storeNameDisplay = document.getElementById('storeNameDisplay');
@@ -135,36 +118,73 @@
     const chatLink = document.getElementById('chatLink');
     const friendLink = document.getElementById('friendLink');
 
+    function normalizeStoreKey(value) {
+      return (value || '').trim().toLowerCase();
+    }
+
     function showError(message) {
       itemTitle.textContent = '無法開啟商品資訊';
       guideText.textContent = message;
       actionArea.hidden = true;
     }
 
-    async function initProductPage() {
-      try {
-        await liff.init({
-          liffId: stableLiffId,
-          withLoginOnExternalBrowser: false
-        });
-      } catch (error) {
-        console.error('LIFF 初始化失敗', error);
-        showError('商品頁暫時無法載入，請重新掃描商品上的 QR 碼。');
-        return;
+    function readEntryStoreKey() {
+      const currentUrl = new URL(window.location.href);
+      const liffState = currentUrl.searchParams.get('liff.state');
+
+      if (liffState === null) {
+        return normalizeStoreKey(currentUrl.searchParams.get('store'));
       }
 
-      const params = new URLSearchParams(window.location.search);
-      const storeKey = (params.get('store') || '').trim().toLowerCase();
-      const itemName = (params.get('name') || '').trim();
-      const productUrl = (params.get('url') || '').trim();
+      // 第一次轉址時，LINE 可能把 QR 碼參數暫放在 liff.state。
+      // 這裡只讀門市代碼以選擇 LIFF ID，商品資料等初始化後再讀。
+      try {
+        const stateUrl = new URL(liffState, currentUrl);
+        return normalizeStoreKey(stateUrl.searchParams.get('store'));
+      } catch {
+        return '';
+      }
+    }
 
-      if (!Object.prototype.hasOwnProperty.call(storeConfig, storeKey)) {
+    async function initProductPage() {
+      const entryStoreKey = readEntryStoreKey();
+
+      if (!Object.prototype.hasOwnProperty.call(storeConfig, entryStoreKey)) {
         showError('找不到對應櫃位，請重新掃描商品上的 QR 碼。');
         return;
       }
 
+      const store = storeConfig[entryStoreKey];
+      const liffId = store.liffId.trim();
+
+      if (!liffId) {
+        showError(`${store.name}尚未設定掃碼入口，請洽詢櫃位人員。`);
+        return;
+      }
+
+      try {
+        await window.liff.init({
+          liffId,
+          withLoginOnExternalBrowser: false
+        });
+      } catch (error) {
+        console.error('LIFF 初始化失敗', error);
+        showError('商品頁暫時無法載入，請重新掃描或洽詢櫃位人員。');
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const confirmedStoreKey = normalizeStoreKey(params.get('store'));
+      const itemName = (params.get('name') || '').trim();
+      const productUrl = (params.get('url') || '').trim();
+
+      if (confirmedStoreKey !== entryStoreKey) {
+        showError('無法確認這張 QR 碼的櫃位，請重新掃描或洽詢櫃位人員。');
+        return;
+      }
+
       if (!itemName || !productUrl) {
-        showError('這張 QR 碼缺少商品資料，請重新掃描或洽詢櫃位人員。');
+        showError('這張 QR 碼缺少商品資料，請洽詢櫃位人員。');
         return;
       }
 
@@ -172,29 +192,31 @@
 
       try {
         parsedProductUrl = new URL(productUrl);
-        if (parsedProductUrl.protocol !== 'https:') {
-          throw new Error('商品網址必須使用 HTTPS');
-        }
-      } catch (error) {
+      } catch {
         showError('商品連結格式有誤，請洽詢櫃位人員。');
         return;
       }
 
-      const activeStore = storeConfig[storeKey];
-      const encodedBotId = encodeURIComponent(activeStore.botBasicId);
-      const messageText = `【${itemName}】商品詳細頁面： ${parsedProductUrl.href}`;
+      if (parsedProductUrl.protocol !== 'https:') {
+        showError('商品連結格式有誤，請洽詢櫃位人員。');
+        return;
+      }
 
-      storeNameDisplay.textContent = `櫃位：${activeStore.name}`;
+      const encodedBotId = encodeURIComponent(store.botBasicId);
+      const message = `【${itemName}】商品詳細頁面： ${parsedProductUrl.href}`;
+
+      storeNameDisplay.textContent = `櫃位：${store.name}`;
       itemTitle.textContent = itemName;
-      guideText.textContent = '點擊下方按鈕，開啟這個櫃位的 LINE 聊天室。';
+      guideText.textContent =
+        '點擊下方按鈕開啟此櫃位的 LINE 聊天室，確認商品資訊後按送出。';
 
       chatLink.href =
-        `https://line.me/R/oaMessage/${encodedBotId}/?${encodeURIComponent(messageText)}`;
+        `https://line.me/R/oaMessage/${encodedBotId}/?${encodeURIComponent(message)}`;
       friendLink.href = `https://line.me/R/ti/p/${encodedBotId}`;
       actionArea.hidden = false;
     }
 
-    initProductPage();
+    document.addEventListener('DOMContentLoaded', initProductPage);
   </script>
 </body>
 </html>
